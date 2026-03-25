@@ -1,6 +1,7 @@
-import { listUsers } from "@/lib/store";
+import { listAppUsers } from "@/lib/user-repository";
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  return NextResponse.json({ users: listUsers() });
+  const users = await listAppUsers();
+  return NextResponse.json({ users });
 }

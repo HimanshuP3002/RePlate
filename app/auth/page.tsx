@@ -3,25 +3,17 @@
 import { setSession } from "@/lib/session";
 import { UserRole } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 
-interface UserOption {
+interface AuthUser {
   id: string;
   name: string;
   role: UserRole;
-  verificationStatus: string;
 }
 
-interface UsersResponse {
-  users: UserOption[];
-}
-
-interface SignupResponse {
-  user: {
-    id: string;
-    name: string;
-    role: UserRole;
-  };
+interface AuthResponse {
+  user: AuthUser;
+  error?: string;
 }
 
 const routeForRole: Record<UserRole, string> = {
@@ -40,32 +32,37 @@ const roleCopy: Array<{ role: UserRole; title: string; description: string }> = 
 
 export default function AuthPage() {
   const router = useRouter();
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [selectedId, setSelectedId] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    void fetch("/api/users")
-      .then((response) => response.json())
-      .then((data: UsersResponse) => {
-        setUsers(data.users);
-        if (data.users[0]) {
-          setSelectedId(data.users[0].id);
-        }
-      });
-  }, []);
-
-  async function handleLogin(event: FormEvent) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const user = users.find((entry) => entry.id === selectedId);
-    if (!user) {
-      setError("Select a demo user.");
+    const form = new FormData(event.currentTarget);
+    setError("");
+    setLoading(true);
+
+    const payload = {
+      email: String(form.get("email")),
+      role: String(form.get("role"))
+    };
+
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data: AuthResponse & { error?: string } = await response.json();
+    setLoading(false);
+
+    if (!response.ok || !data.user) {
+      setError(data.error ?? "Could not login.");
       return;
     }
-    setSession({ id: user.id, name: user.name, role: user.role });
-    router.push(routeForRole[user.role]);
+
+    setSession({ id: data.user.id, name: data.user.name, role: data.user.role });
+    router.push(routeForRole[data.user.role]);
   }
 
   async function handleSignup(event: FormEvent<HTMLFormElement>) {
@@ -88,14 +85,14 @@ export default function AuthPage() {
       body: JSON.stringify(payload)
     });
 
+    const data: AuthResponse & { error?: string } = await response.json();
     setLoading(false);
 
-    if (!response.ok) {
-      setError("Could not create account.");
+    if (!response.ok || !data.user) {
+      setError(data.error ?? "Could not create account.");
       return;
     }
 
-    const data: SignupResponse = await response.json();
     setSession({ id: data.user.id, name: data.user.name, role: data.user.role });
     router.push(routeForRole[data.user.role]);
   }
@@ -104,35 +101,36 @@ export default function AuthPage() {
     <main className="authLayout">
       <section className="card authPanel glassCard">
         <div className="authSwitch">
-          <button className={mode === "login" ? "button" : "buttonGhost"} onClick={() => setMode("login")}>
-            Login
-          </button>
-          <button className={mode === "signup" ? "button" : "buttonGhost"} onClick={() => setMode("signup")}>
-            Sign up
-          </button>
+          <button className={mode === "login" ? "button" : "buttonGhost"} onClick={() => setMode("login")}>Login</button>
+          <button className={mode === "signup" ? "button" : "buttonGhost"} onClick={() => setMode("signup")}>Sign up</button>
         </div>
 
         <div className="authIntro">
-          <p className="kicker">Role access</p>
-          <h1 className="sectionTitle">Enter the RePlate operating system</h1>
+          <p className="kicker">Account access</p>
+          <h1 className="sectionTitle">Enter your details to use RePlate</h1>
           <p className="sectionLead">
-            Use seeded demo accounts or create a new profile to explore the live product flows.
+            Signup saves your information in Supabase Postgres when `DATABASE_URL` is configured. Login checks your saved account by email and role.
           </p>
         </div>
 
         {mode === "login" ? (
-          <form className="stack" onSubmit={handleLogin}>
-            <div className="field">
-              <label>Choose account</label>
-              <select value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} | {user.role} | {user.verificationStatus}
-                  </option>
-                ))}
+          <form className="formGrid" onSubmit={handleLogin}>
+            <div className="field full">
+              <label>Email</label>
+              <input name="email" type="email" required placeholder="you@example.com" />
+            </div>
+            <div className="field full">
+              <label>Role</label>
+              <select name="role" defaultValue="consumer">
+                <option value="consumer">Consumer</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="ngo">NGO</option>
+                <option value="admin">Admin</option>
               </select>
             </div>
-            <button className="button" type="submit">Continue to dashboard</button>
+            <div className="field full">
+              <button className="button" type="submit" disabled={loading}>{loading ? "Logging in..." : "Continue to dashboard"}</button>
+            </div>
           </form>
         ) : (
           <form className="formGrid" onSubmit={handleSignup}>
@@ -161,9 +159,7 @@ export default function AuthPage() {
               </select>
             </div>
             <div className="field full">
-              <button className="button" type="submit" disabled={loading}>
-                {loading ? "Creating account..." : "Create account"}
-              </button>
+              <button className="button" type="submit" disabled={loading}>{loading ? "Creating account..." : "Create account"}</button>
             </div>
           </form>
         )}
