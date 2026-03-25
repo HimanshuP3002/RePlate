@@ -4,7 +4,7 @@ RePlate is a web-first food waste-to-value platform for restaurants, consumers, 
 
 ## Live Preview
 
-Preview deployment: [https://skill-deploy-ba6qc4r9cg-codex-agent-deploys.vercel.app](https://skill-deploy-ba6qc4r9cg-codex-agent-deploys.vercel.app)
+Preview deployment: [RePlate Demo Link](https://skill-deploy-ba6qc4r9cg-codex-agent-deploys.vercel.app)
 
 ## What This MVP Includes
 
