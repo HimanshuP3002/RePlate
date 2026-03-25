@@ -39,9 +39,9 @@ Set these locally and in Vercel Project Settings.
 
 ```env
 NEXT_PUBLIC_APP_NAME=RePlate
-NEXT_PUBLIC_SUPABASE_URL=https://hyhriuaxxwizapmdybat.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=SUPABASE_PUBLIC_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_REAL_SUPABASE_ANON_KEY
-DATABASE_URL=postgresql://postgres:Himanshu%4030@db.hyhriuaxxwizapmdybat.supabase.co:5432/postgres
+DATABASE_URL=SUPABASE_DATABASE_URL
 ```
 
 Important:
